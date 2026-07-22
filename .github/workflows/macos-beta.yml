@@ -1,0 +1,48 @@
+name: macOS beta
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "installer/build-portable.mjs"
+      - "installer/portable-entry.tsx"
+      - "installer/validate-portable.mjs"
+      - "installer/assets/RAP ATLAS.png"
+      - "macos/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/macos-beta.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.9.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Собрать универсальное приложение и DMG
+        run: bash macos/build-macos.sh
+      - name: Проверить содержимое сборки
+        run: |
+          test -s "macos/release/RAP-ATLAS-macOS-Beta.dmg"
+          hdiutil verify "macos/release/RAP-ATLAS-macOS-Beta.dmg"
+          file "macos/build/RAP ATLAS.app/Contents/MacOS/RapAtlas" | grep -q "universal binary"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: RAP-ATLAS-macOS-Beta
+          path: |
+            macos/release/RAP-ATLAS-macOS-Beta.dmg
+            macos/release/RAP-ATLAS-macOS-Beta.sha256
+          if-no-files-found: error

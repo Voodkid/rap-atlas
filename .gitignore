@@ -41,6 +41,8 @@ next-env.d.ts
 /outputs/
 /installer/build/
 /installer/release/
+/macos/build/
+/macos/release/
 /work/*
 !/work/launch-atlas.ps1
 /tsconfig.tsbuildinfo
