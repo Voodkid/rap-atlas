@@ -15,7 +15,7 @@ rm -rf "$BUILD" "$ROOT/macos/release"
 mkdir -p "$MACOS" "$RESOURCES" "$DMG_ROOT" "$ROOT/macos/release"
 
 pnpm exec esbuild "$ROOT/installer/portable-entry.tsx" \
-  --bundle --format=iife --platform=browser --target=safari14 \
+  --bundle --format=iife --platform=browser --target=es2020 \
   --jsx=automatic --minify --legal-comments=none \
   --outfile="$BUILD/rap-atlas.bundle.js"
 node "$ROOT/installer/build-portable.mjs" \
