@@ -1,0 +1,22 @@
+name: Предложить улучшение
+description: Новая функция, карточка или исправление текста
+title: "[Идея] "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Что изменить?
+    validations:
+      required: true
+  - type: textarea
+    id: reason
+    attributes:
+      label: Зачем это нужно?
+    validations:
+      required: true
+  - type: textarea
+    id: examples
+    attributes:
+      label: Примеры и источники
+      description: Для музыкальных карточек приложите треки, артистов или ссылки.

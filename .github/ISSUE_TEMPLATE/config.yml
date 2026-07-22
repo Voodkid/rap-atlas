@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Чат RAP ATLAS
+    url: https://t.me/RAPATLAS/1
+    about: Вопросы по жанрам и обычное обсуждение проекта
+  - name: Баги в Telegram
+    url: https://t.me/RAPATLAS/33
+    about: Если удобнее отправить скрин или видео в Telegram

@@ -1,0 +1,38 @@
+name: Сообщить о баге
+description: Что-то не запускается или работает неправильно
+title: "[Баг] "
+labels: [bug]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Что сломалось?
+      description: Коротко опишите проблему.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Как повторить?
+      description: Что вы нажали перед появлением ошибки?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Версия RAP ATLAS
+      placeholder: 0.3.0
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: Windows и браузер
+      placeholder: Windows 11, Firefox
+    validations:
+      required: true
+  - type: textarea
+    id: media
+    attributes:
+      label: Скрин или видео
+      description: Перетащите файл сюда. Убедитесь, что на нём нет личных данных.

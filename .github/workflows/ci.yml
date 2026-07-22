@@ -1,0 +1,37 @@
+name: Проверка проекта
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Скачать исходники
+        uses: actions/checkout@v6
+
+      - name: Подключить pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Подключить Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+
+      - name: Установить зависимости
+        run: pnpm install --frozen-lockfile
+
+      - name: Проверить стиль кода
+        run: pnpm lint
+
+      - name: Собрать и проверить проект
+        run: pnpm test
