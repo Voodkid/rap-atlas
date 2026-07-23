@@ -1,5 +1,6 @@
 name: ChatGPT Linux build
 
+# Triggered by the temporary ChatGPT build branch.
 on:
   workflow_dispatch:
   push:
