@@ -2,6 +2,8 @@ name: ChatGPT Linux build
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "7 8 23 7 *"
   push:
     branches: [main]
     paths:
@@ -12,7 +14,7 @@ on:
       - ".github/workflows/chatgpt-linux-build.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -42,11 +44,39 @@ jobs:
             pnpm-lock.yaml \
             pnpm-workspace.yaml
           sha256sum rap-atlas-linux-env.tar.gz > rap-atlas-linux-env.tar.gz.sha256
-      - uses: actions/upload-artifact@v7
-        with:
-          name: rap-atlas-linux-env
-          path: |
-            rap-atlas-linux-env.tar.gz
-            rap-atlas-linux-env.tar.gz.sha256
-          if-no-files-found: error
-          retention-days: 3
+      - name: Publish temporary prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete chatgpt-linux-env --cleanup-tag -y || true
+          gh release create chatgpt-linux-env \
+            rap-atlas-linux-env.tar.gz \
+            rap-atlas-linux-env.tar.gz.sha256 \
+            --title "ChatGPT Linux environment" \
+            --notes "Temporary Linux x64 environment for RAP ATLAS, built and tested on GitHub Actions." \
+            --prerelease \
+            --target "${GITHUB_SHA}"
+      - name: Record verified build status
+        run: |
+          ARCHIVE_SHA="$(cut -d' ' -f1 rap-atlas-linux-env.tar.gz.sha256)"
+          ARCHIVE_SIZE="$(stat -c%s rap-atlas-linux-env.tar.gz)"
+          mkdir -p .github/build-status
+          cat > .github/build-status/chatgpt-linux-env.json <<EOF
+          {
+            "status": "success",
+            "source_commit": "${GITHUB_SHA}",
+            "node": "22.13.0",
+            "pnpm": "11.9.0",
+            "archive": "rap-atlas-linux-env.tar.gz",
+            "sha256": "${ARCHIVE_SHA}",
+            "size_bytes": ${ARCHIVE_SIZE},
+            "release": "https://github.com/Voodkid/rap-atlas/releases/tag/chatgpt-linux-env",
+            "asset": "https://github.com/Voodkid/rap-atlas/releases/download/chatgpt-linux-env/rap-atlas-linux-env.tar.gz"
+          }
+          EOF
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/build-status/chatgpt-linux-env.json
+          git commit -m "ci: record verified Linux build"
+          git pull --rebase origin main
+          git push origin HEAD:main
