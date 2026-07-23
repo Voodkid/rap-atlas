@@ -1,0 +1,48 @@
+name: ChatGPT Linux build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/chatgpt-linux-build.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.9.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Lint
+        run: pnpm lint
+      - name: Build and test
+        run: pnpm test
+      - name: Pack reusable Linux environment
+        run: |
+          tar -czf rap-atlas-linux-env.tar.gz \
+            node_modules \
+            dist \
+            package.json \
+            pnpm-lock.yaml \
+            pnpm-workspace.yaml
+          sha256sum rap-atlas-linux-env.tar.gz > rap-atlas-linux-env.tar.gz.sha256
+      - uses: actions/upload-artifact@v7
+        with:
+          name: rap-atlas-linux-env
+          path: |
+            rap-atlas-linux-env.tar.gz
+            rap-atlas-linux-env.tar.gz.sha256
+          if-no-files-found: error
+          retention-days: 3
