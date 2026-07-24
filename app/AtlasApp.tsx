@@ -27,6 +27,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { BookmarksView } from "@/features/bookmarks/BookmarksView";
 import { GlossaryDrawer } from "@/features/glossary/GlossaryDrawer";
 import { glossary } from "@/features/glossary/glossary-data";
 import { FinderView } from "@/features/finder/FinderView";
@@ -542,32 +543,6 @@ function ContextRail({ entry, recent, onSelect }: { entry: AtlasEntry | null; re
   );
 }
 
-function BookmarksView({ ids, onSelect }: { ids: string[]; onSelect: (entry: AtlasEntry) => void }) {
-  const saved = ids.map((id) => entryById.get(id)).filter(Boolean) as AtlasEntry[];
-  return (
-    <div className="collection-view">
-      <div className="collection-heading"><BookmarkCheck size={24} /><div><span className="section-kicker">Сохранённое</span><h1>Избранное</h1></div></div>
-      {saved.length ? (
-        <div className="collection-grid">
-          {saved.map((entry) => {
-            const family = getFamily(entry.family);
-            return (
-              <button key={entry.id} className="collection-card" onClick={() => onSelect(entry)} style={{ borderTopColor: family.color }}>
-                <FamilyMark familyId={entry.family} />
-                <strong>{entry.name}</strong>
-                <p>{entry.signature}</p>
-                <div className="badge-stack"><EntityBadge kind={entry.entityKind} /><MaturityBadge entry={entry} /></div>
-              </button>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="empty-state"><Bookmark size={30} /><h2>Пока ничего не сохранено</h2><p>Открой карточку и нажми на закладку.</p></div>
-      )}
-    </div>
-  );
-}
-
 function CompareView({ ids, onSelect, onRemove }: { ids: string[]; onSelect: (entry: AtlasEntry) => void; onRemove: (id: string) => void }) {
   const compared = ids.map((id) => entryById.get(id)).filter(Boolean) as AtlasEntry[];
   return (
@@ -716,6 +691,7 @@ export default function AtlasApp() {
   const searchRef = useRef<HTMLInputElement>(null);
 
   const selected = selectedId ? entryById.get(selectedId) ?? null : null;
+  const bookmarkedEntries = bookmarks.map((id) => entryById.get(id)).filter(Boolean) as AtlasEntry[];
   const visibleIds = useMemo(() => {
     const visible = new Set<string>();
     entries.forEach((entry) => {
@@ -997,7 +973,7 @@ export default function AtlasApp() {
               onSelect={selectEntry}
             />
           ) : view === "bookmarks" ? (
-            <BookmarksView ids={bookmarks} onSelect={selectEntry} />
+            <BookmarksView entries={bookmarkedEntries} getFamily={getFamily} onSelect={selectEntry} />
           ) : view === "compare" ? (
             <CompareView ids={compareIds} onSelect={selectEntry} onRemove={(id) => toggleCompare(id)} />
           ) : view === "guide" ? (
