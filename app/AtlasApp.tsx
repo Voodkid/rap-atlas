@@ -32,6 +32,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { GlossaryDrawer } from "@/features/glossary/GlossaryDrawer";
 import { glossary } from "@/features/glossary/glossary-data";
 import { GenreTree } from "@/features/navigation/GenreTree";
+import { GlobalSearch } from "@/features/search/GlobalSearch";
 import { AtlasShell } from "@/features/shell/AtlasShell";
 import type { DetailTab, KnowledgeScope, ViewMode } from "@/features/shell/model";
 import { useStoredList } from "@/shared/hooks/useStoredList";
@@ -133,62 +134,6 @@ function ProfileBars({ entry, compact = false }: { entry: AtlasEntry; compact?: 
           </div>
         </div>
       ))}
-    </div>
-  );
-}
-
-function SearchOverlay({
-  query,
-  onSelect,
-  onClose,
-  scope,
-  showDisputed,
-}: {
-  query: string;
-  onSelect: (entry: AtlasEntry) => void;
-  onClose: () => void;
-  scope: KnowledgeScope;
-  showDisputed: boolean;
-}) {
-  const results = useMemo(
-    () => searchEntries(query).filter(({ entry }) =>
-      (scope === "all" || entry.researchState === "reviewed") &&
-      (showDisputed || (entry.maturity !== "disputed" && entry.maturity !== "unconfirmed"))),
-    [query, scope, showDisputed],
-  );
-  if (!query.trim()) return null;
-  return (
-    <div className="search-overlay" role="dialog" aria-label="Результаты поиска">
-      <div className="search-overlay__top">
-        <span>{results.length ? `Лучшие совпадения · ${results.length}` : "Ничего точного не найдено"}</span>
-        <button onClick={onClose} title="Закрыть поиск"><X size={16} /></button>
-      </div>
-      <div className="search-results">
-        {results.length ? (
-          results.map(({ entry }) => {
-            const family = getFamily(entry.family);
-            return (
-              <button key={entry.id} className="search-result" onClick={() => onSelect(entry)}>
-                <span className="search-result__accent" style={{ backgroundColor: family.color }} />
-                <span className="search-result__body">
-                  <span className="search-result__title"><strong>{entry.name}</strong>{entry.researchState === "reviewed" && <BadgeCheck size={12} />}</span>
-                  <small>{entry.signature}</small>
-                  <em>{entityKindLabels[entry.entityKind]} · {maturityLabels[entry.maturity].label}</em>
-                </span>
-                <span className={`search-result__status search-result__status--${entry.status}`}>
-                  {statusSymbol[entry.status]}
-                </span>
-              </button>
-            );
-          })
-        ) : (
-          <div className="search-empty">
-            <Search size={24} />
-            <strong>Попробуй искать по артисту, продюсеру или признаку звука</strong>
-            <span>Например: «мягкий саб», «Luci4», «мелодичный», «ломаная драмка».</span>
-          </div>
-        )}
-      </div>
     </div>
   );
 }
@@ -898,6 +843,13 @@ export default function AtlasApp() {
     return visible;
   }, [scope, showDisputed]);
 
+  const searchResults = useMemo(
+    () => searchEntries(query).filter(({ entry }) =>
+      (scope === "all" || entry.researchState === "reviewed") &&
+      (showDisputed || (entry.maturity !== "disputed" && entry.maturity !== "unconfirmed"))),
+    [query, scope, showDisputed],
+  );
+
   useEffect(() => {
     let cancelled = false;
     const timer = window.setTimeout(async () => {
@@ -1034,13 +986,18 @@ export default function AtlasApp() {
       bookmarksCount={bookmarks.length}
       compareCount={compareIds.length}
       searchContent={
-        <div className="global-search">
-          <Search size={18} />
-          <input ref={searchRef} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Жанр, артист, продюсер или признак звука…" aria-label="Поиск по атласу" />
-          <kbd>Ctrl K</kbd>
-          {query && <button onClick={() => setQuery("")} title="Очистить"><X size={16} /></button>}
-          <SearchOverlay query={query} onSelect={selectEntry} onClose={() => setQuery("")} scope={scope} showDisputed={showDisputed} />
-        </div>
+        <GlobalSearch
+          query={query}
+          results={searchResults}
+          inputRef={searchRef}
+          entityKindLabels={entityKindLabels}
+          maturityLabels={maturityLabels}
+          statusSymbol={statusSymbol}
+          getFamily={getFamily}
+          onQueryChange={setQuery}
+          onClear={() => setQuery("")}
+          onSelect={selectEntry}
+        />
       }
       navigationContent={
         <GenreTree
