@@ -13,31 +13,26 @@ import {
   Columns3,
   Compass,
   Database,
-  Dice5,
   Ear,
   ExternalLink,
   FileWarning,
   GitCompareArrows,
-  Home,
   Info,
   ListFilter,
-  Menu,
   MessageSquareWarning,
-  Moon,
   Music2,
-  PencilLine,
   RotateCcw,
   Search,
   ShieldCheck,
   SlidersHorizontal,
   Sparkles,
-  Sun,
   Workflow,
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GlossaryDrawer } from "@/features/glossary/GlossaryDrawer";
 import { glossary } from "@/features/glossary/glossary-data";
+import { AtlasShell } from "@/features/shell/AtlasShell";
 import type { DetailTab, KnowledgeScope, ViewMode } from "@/features/shell/model";
 import { useStoredList } from "@/shared/hooks/useStoredList";
 import { cn } from "@/shared/lib/cn";
@@ -1091,13 +1086,16 @@ export default function AtlasApp() {
   };
 
   return (
-    <div className="atlas-app" data-theme={theme}>
-      <header className="topbar">
-        <button className="mobile-menu" onClick={() => setNavOpen(true)} title="Открыть дерево"><Menu size={20} /></button>
-        <button className="brand" onClick={() => showView("home")}>
-          <span className="brand__glyph">RA</span>
-          <span className="brand__copy"><strong>RAP ATLAS</strong><small>2.0 · проверено {reviewedTotal} из {entries.length}</small></span>
-        </button>
+    <AtlasShell
+      theme={theme}
+      navOpen={navOpen}
+      view={view}
+      isHomeActive={view === "home" && !selected}
+      reviewedTotal={reviewedTotal}
+      entryTotal={entries.length}
+      bookmarksCount={bookmarks.length}
+      compareCount={compareIds.length}
+      searchContent={
         <div className="global-search">
           <Search size={18} />
           <input ref={searchRef} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Жанр, артист, продюсер или признак звука…" aria-label="Поиск по атласу" />
@@ -1105,29 +1103,9 @@ export default function AtlasApp() {
           {query && <button onClick={() => setQuery("")} title="Очистить"><X size={16} /></button>}
           <SearchOverlay query={query} onSelect={selectEntry} onClose={() => setQuery("")} scope={scope} showDisputed={showDisputed} />
         </div>
-        <div className="topbar-actions">
-          <button className="top-action" onClick={randomEntry} title="Открыть случайную карточку"><Dice5 size={18} /><span>Случайная</span></button>
-          <button className="icon-button" onClick={() => setGlossaryOpen(true)} title="Словарь"><CircleHelp size={18} /></button>
-          <button className="icon-button" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} title="Сменить тему">
-            {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
-        </div>
-      </header>
-
-      <div className="atlas-shell">
-        <aside className={cn("atlas-nav", navOpen && "atlas-nav--open")}>
-          <div className="atlas-nav__mobile-top">
-            <strong>Дерево жанров</strong>
-            <button onClick={() => setNavOpen(false)}><X size={18} /></button>
-          </div>
-          <nav className="primary-nav" aria-label="Основная навигация">
-            <button className={cn(view === "home" && !selected && "active")} onClick={() => showView("home")}><Home size={17} /> Обзор</button>
-            <button className={cn(view === "finder" && "active")} onClick={() => showView("finder")}><SlidersHorizontal size={17} /> Подобрать звук</button>
-            <button className={cn(view === "bookmarks" && "active")} onClick={() => showView("bookmarks")}><Bookmark size={17} /> Избранное <span>{bookmarks.length}</span></button>
-            <button className={cn(view === "compare" && "active")} onClick={() => showView("compare")}><GitCompareArrows size={17} /> Сравнение <span>{compareIds.length}</span></button>
-            <button className={cn(view === "guide" && "active")} onClick={() => showView("guide")}><BookOpen size={17} /> Как устроен атлас</button>
-            <button className={cn(view === "editor" && "active")} onClick={() => showView("editor")}><PencilLine size={17} /> Редактор карточки</button>
-          </nav>
+      }
+      navigationContent={
+        <>
           <div className="nav-filters">
             <span className="section-kicker">Показывать в дереве</span>
             <div><button className={scope === "all" ? "active" : ""} onClick={() => setScope("all")}>Вся база</button><button className={scope === "reviewed" ? "active" : ""} onClick={() => setScope("reviewed")}>Проверенные {reviewedTotal}</button></div>
@@ -1168,10 +1146,9 @@ export default function AtlasApp() {
               );
             })}
           </div>
-        </aside>
-
-        {navOpen && <button className="nav-backdrop" onClick={() => setNavOpen(false)} aria-label="Закрыть меню" />}
-
+        </>
+      }
+      mainContent={
         <main className="atlas-main">
           {selected && (
             <div className="history-controls">
@@ -1205,26 +1182,32 @@ export default function AtlasApp() {
             <HomeView onSelect={selectEntry} onFinder={() => showView("finder")} onGuide={() => showView("guide")} onFocusSearch={() => { searchRef.current?.focus(); }} />
           )}
         </main>
-
-        <ContextRail entry={selected} recent={recent} onSelect={selectEntry} />
-      </div>
-
-      {compareIds.length > 0 && view !== "compare" && (
-        <div className="compare-tray">
-          <div className="compare-tray__items">
-            <GitCompareArrows size={17} />
-            {compareIds.map((id) => {
-              const item = entryById.get(id);
-              if (!item) return null;
-              return <span key={id}>{item.name}<button onClick={() => toggleCompare(id)}><X size={12} /></button></span>;
-            })}
+      }
+      contextRail={<ContextRail entry={selected} recent={recent} onSelect={selectEntry} />}
+      compareTray={
+        compareIds.length > 0 && view !== "compare" && (
+          <div className="compare-tray">
+            <div className="compare-tray__items">
+              <GitCompareArrows size={17} />
+              {compareIds.map((id) => {
+                const item = entryById.get(id);
+                if (!item) return null;
+                return <span key={id}>{item.name}<button onClick={() => toggleCompare(id)}><X size={12} /></button></span>;
+              })}
+            </div>
+            <button className="button button--primary button--small" onClick={() => showView("compare")} disabled={compareIds.length < 2}>
+              Сравнить {compareIds.length}/3
+            </button>
           </div>
-          <button className="button button--primary button--small" onClick={() => showView("compare")} disabled={compareIds.length < 2}>
-            Сравнить {compareIds.length}/3
-          </button>
-        </div>
-      )}
-      <GlossaryDrawer open={glossaryOpen} onClose={() => setGlossaryOpen(false)} />
-    </div>
+        )
+      }
+      glossaryDrawer={<GlossaryDrawer open={glossaryOpen} onClose={() => setGlossaryOpen(false)} />}
+      onOpenNavigation={() => setNavOpen(true)}
+      onCloseNavigation={() => setNavOpen(false)}
+      onShowView={showView}
+      onRandomEntry={randomEntry}
+      onOpenGlossary={() => setGlossaryOpen(true)}
+      onToggleTheme={() => setTheme(theme === "dark" ? "light" : "dark")}
+    />
   );
 }
