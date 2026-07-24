@@ -25,6 +25,7 @@
     "typecheck": "tsc --noEmit",
     "validate:content": "node --test tests/content-integrity.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
+    "measure:bundle": "node scripts/measure-client-bundle.mjs",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
