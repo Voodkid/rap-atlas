@@ -36,6 +36,15 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { GlossaryDrawer } from "@/features/glossary/GlossaryDrawer";
+import { glossary } from "@/features/glossary/glossary-data";
+import type { DetailTab, KnowledgeScope, ViewMode } from "@/features/shell/model";
+import { useStoredList } from "@/shared/hooks/useStoredList";
+import { cn } from "@/shared/lib/cn";
+import { EntityBadge } from "@/shared/ui/EntityBadge";
+import { FamilyMark } from "@/shared/ui/FamilyMark";
+import { MaturityBadge } from "@/shared/ui/MaturityBadge";
+import { ResearchBadge } from "@/shared/ui/ResearchBadge";
 import {
   AtlasEntry,
   EntityKind,
@@ -55,10 +64,6 @@ import {
   maturityLabels,
   relationTypeLabels,
 } from "./atlas-data";
-
-type ViewMode = "home" | "finder" | "bookmarks" | "compare" | "guide" | "editor";
-type KnowledgeScope = "all" | "reviewed";
-type DetailTab = "quick" | "producer" | "history";
 
 const reviewedTotal = entries.filter((entry) => entry.researchState === "reviewed").length;
 
@@ -118,93 +123,6 @@ const melodyOptions = [
   { id: "dark", label: "Тёмная, ноты звучат напряжённо" },
 ];
 
-const glossary: Record<string, string> = {
-  "808": "Басовый звук, который часто играет ноты мелодии. Название пошло от драм-машины Roland TR-808.",
-  "саб": "Самая низкая часть баса. На маленьких колонках её почти не слышно, зато на больших она хорошо чувствуется.",
-  "кик": "Бочка — основной низкий удар в драмке.",
-  "клэп": "Короткий хлопок. В рэпе часто ставится на место снейра.",
-  "снейр": "Резкий удар малого барабана. В рэпе часто отмечает те же доли, что и клэп.",
-  "хэты": "Короткие высокие удары тарелки. Они заполняют ритм между киком и клэпом.",
-  "перкуссия": "Все дополнительные ударные звуки кроме основной бочки и снейра.",
-  "аккорд": "Несколько нот, которые звучат одновременно и задают гармонию.",
-  "луп": "Короткий фрагмент, который повторяется по кругу.",
-  "сэмпл": "Готовый фрагмент звука или музыки, который используют внутри нового трека.",
-  "арпеджио": "Ноты аккорда играют быстро по очереди, а не одновременно.",
-  "аранжировка": "Порядок частей и слоёв трека: интро, куплет, хук, переходы и моменты, когда звуки входят или исчезают.",
-  "флоу": "Ритм и манера читки: где артист ставит слова, паузы и акценты.",
-  "синкопа": "Акцент между основными долями. Из-за него ритм кажется неровным или неожиданным.",
-  "плак": "Короткий синтезаторный звук: быстро начинается и быстро затихает. В Plugg на нём часто играют главную мелодию.",
-  "пэд": "Длинный фоновый звук синтезатора. Он заполняет пустое место и делает бит шире.",
-  "тембр": "Характер или окраска звука. Одна и та же нота на пианино и синтезаторе имеет разный тембр.",
-  "BPM": "Количество ударов метронома в минуту. Число показывает скорость проекта, но музыка может ощущаться в два раза медленнее.",
-  "лид": "Главный мелодический звук, который выходит на первый план.",
-  "bounce": "То, насколько ритм качает. Его создают паузы и акценты кика, клэпа, хэтов и баса.",
-  "swing": "Часть ударов немного сдвинута с ровной сетки. Поэтому драмка звучит живее и менее ровно.",
-  "transient": "Самое начало звука: например, первый щелчок кика, снейра или плака.",
-  "клиппинг": "Перегруз, при котором звук начинает искажаться. Иногда это ошибка, иногда — намеренная часть бита.",
-  "дрон": "Одна длинная нота или шумовой слой. Он меняется медленно и иногда заменяет обычную мелодию.",
-  "слайд": "Плавный переход 808 с одной ноты на другую.",
-  "питч": "Высота звука. Если поднять питч, звук станет выше; если опустить — ниже.",
-  "форманта": "Оттенок голоса или баса. Форманту можно менять так, чтобы звук казался тоньше, толще или более нечеловеческим.",
-  "реверб": "Эффект отражения звука, похожий на эхо в большой комнате.",
-  "дилей": "Повтор звука через короткое время. Похож на обычное эхо.",
-  "дроп": "Часть трека, где после подготовки одновременно входят основные ударные и бас.",
-  "Auto-Tune": "Обработка, которая подтягивает высоту вокала к нотам. Может исправлять пение или создавать заметный электронный эффект.",
-};
-
-function cn(...parts: Array<string | false | null | undefined>) {
-  return parts.filter(Boolean).join(" ");
-}
-
-function useStoredList(key: string, legacyKey: string) {
-  const [items, setItems] = useState<string[]>([]);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    const timer = window.setTimeout(async () => {
-      try {
-        const response = await fetch(`/__state?key=${encodeURIComponent(key)}`, { cache: "no-store" });
-        if (response.ok) {
-          const stored = await response.json();
-          if (!cancelled && Array.isArray(stored)) setItems(stored.filter((item): item is string => typeof item === "string"));
-        } else {
-          const legacy = window.localStorage.getItem(legacyKey);
-          if (!cancelled && legacy) setItems(JSON.parse(legacy));
-        }
-      } catch {
-        try {
-          const legacy = window.localStorage.getItem(legacyKey);
-          if (!cancelled && legacy) setItems(JSON.parse(legacy));
-        } catch {
-          if (!cancelled) setItems([]);
-        }
-      }
-      if (!cancelled) setReady(true);
-    }, 0);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [key, legacyKey]);
-
-  useEffect(() => {
-    if (!ready) return;
-    const body = JSON.stringify(items);
-    fetch(`/__state?key=${encodeURIComponent(key)}`, {
-      method: "POST",
-      body,
-      headers: { "Content-Type": "application/json" },
-      keepalive: true,
-    }).then((response) => {
-      if (response.ok) window.localStorage.removeItem(legacyKey);
-      else window.localStorage.setItem(legacyKey, body);
-    }).catch(() => window.localStorage.setItem(legacyKey, body));
-  }, [items, key, legacyKey, ready]);
-
-  return [items, setItems] as const;
-}
-
 function ProfileBars({ entry, compact = false }: { entry: AtlasEntry; compact?: boolean }) {
   const family = getFamily(entry.family);
   return (
@@ -221,61 +139,6 @@ function ProfileBars({ entry, compact = false }: { entry: AtlasEntry; compact?: 
         </div>
       ))}
     </div>
-  );
-}
-
-function EntityBadge({ kind }: { kind: EntityKind }) {
-  return <span className="entity-badge">{entityKindLabels[kind]}</span>;
-}
-
-function MaturityBadge({ entry }: { entry: AtlasEntry }) {
-  return (
-    <span className={cn("maturity-badge", `maturity-badge--${entry.maturity}`)} title={maturityLabels[entry.maturity].note}>
-      {maturityLabels[entry.maturity].label}
-    </span>
-  );
-}
-
-function ResearchBadge({ entry, compact = false }: { entry: AtlasEntry; compact?: boolean }) {
-  return entry.researchState === "reviewed" ? (
-    <span className={cn("research-badge", compact && "research-badge--compact")} title={`Проверено: ${entry.reviewedAt}`}>
-      <BadgeCheck size={compact ? 12 : 14} /> Проверено
-    </span>
-  ) : (
-    <span className={cn("research-badge", "research-badge--legacy", compact && "research-badge--compact")} title="Карточка сохранена из первой версии и ждёт подробной проверки">
-      <FileWarning size={compact ? 12 : 14} /> Ждёт проверки
-    </span>
-  );
-}
-
-function FamilyMark({ familyId }: { familyId: FamilyId }) {
-  const family = getFamily(familyId);
-  return (
-    <span className="family-mark" style={{ color: family.color }}>
-      <span className="family-mark__dot" style={{ backgroundColor: family.color }} />
-      {family.name}
-    </span>
-  );
-}
-
-function GlossaryDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
-  if (!open) return null;
-  return (
-    <>
-      <button className="drawer-backdrop" onClick={onClose} aria-label="Закрыть словарь" />
-      <aside className="glossary-drawer" role="dialog" aria-label="Словарь продюсерских терминов">
-        <div className="glossary-drawer__top">
-          <div><span className="section-kicker">Коротко и на слух</span><h2>Словарь</h2></div>
-          <button className="icon-button" onClick={onClose} title="Закрыть"><X size={18} /></button>
-        </div>
-        <p className="glossary-drawer__intro">Здесь простые объяснения слов из карточек. Переводить их полностью не нужно: продюсеры обычно говорят именно так.</p>
-        <div className="glossary-list">
-          {Object.entries(glossary).map(([term, definition]) => (
-            <div key={term}><strong>{term}</strong><p>{definition}</p></div>
-          ))}
-        </div>
-      </aside>
-    </>
   );
 }
 

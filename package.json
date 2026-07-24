@@ -22,6 +22,7 @@
     "build": "vinext build",
     "start": "vinext start",
     "test": "vinext build && node --test tests/content-integrity.test.mjs tests/rendered-html.test.mjs",
+    "typecheck": "tsc --noEmit",
     "validate:content": "node --test tests/content-integrity.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate"
