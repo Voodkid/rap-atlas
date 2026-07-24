@@ -26,6 +26,8 @@
     "validate:content": "node --test tests/content-integrity.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "measure:bundle": "node scripts/measure-client-bundle.mjs",
+    "content:v3:validate": "node scripts/content-v3-contract.mjs",
+    "content:v3:test": "node --test tests/content-v3-contract.test.mjs",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
@@ -43,6 +45,7 @@
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.2",
     "@vitejs/plugin-rsc": "0.5.26",
+    "ajv": "8.20.0",
     "drizzle-kit": "0.31.10",
     "esbuild": "0.28.0",
     "eslint": "9.39.4",
