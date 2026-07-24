@@ -4,11 +4,11 @@ import {
   ArrowLeft,
   ArrowRight,
   GitCompareArrows,
-  Info,
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BookmarksView } from "@/features/bookmarks/BookmarksView";
+import { ContextRail } from "@/features/context/ContextRail";
 import { EntryView } from "@/features/entry/EntryView";
 import { HomeView } from "@/features/home/HomeView";
 import { CompareView } from "@/features/legacy-tools/CompareView";
@@ -19,12 +19,10 @@ import { GlossaryDrawer } from "@/features/glossary/GlossaryDrawer";
 import { glossary } from "@/features/glossary/glossary-data";
 import { FinderView } from "@/features/finder/FinderView";
 import { GenreTree } from "@/features/navigation/GenreTree";
-import { ProfileBars } from "@/features/profile/ProfileBars";
 import { GlobalSearch } from "@/features/search/GlobalSearch";
 import { AtlasShell } from "@/features/shell/AtlasShell";
 import type { DetailTab, KnowledgeScope, ViewMode } from "@/features/shell/model";
 import { useStoredList } from "@/shared/hooks/useStoredList";
-import { EntityBadge } from "@/shared/ui/EntityBadge";
 import {
   AtlasEntry,
   EntryStatus,
@@ -94,59 +92,6 @@ const melodyOptions = [
   { id: "dark", label: "Тёмная, ноты звучат напряжённо" },
 ];
 
-function ContextRail({ entry, recent, onSelect }: { entry: AtlasEntry | null; recent: string[]; onSelect: (entry: AtlasEntry) => void }) {
-  if (!entry) {
-    return (
-      <aside className="context-rail">
-        <div className="rail-block">
-          <span className="section-kicker">Как читать атлас</span>
-          <div className="axis-guide">
-            <div><EntityBadge kind="genre" /><p><strong>Что это?</strong><small>Жанр, сцена, школа, тег, техника или релиз.</small></p></div>
-            <div><span className="axis-guide__mark">M</span><p><strong>Насколько часто так говорят?</strong><small>От общего названия до редкого тега.</small></p></div>
-            <div><span className="axis-guide__mark">C</span><p><strong>Насколько хорошо проверено?</strong><small>Показываем, сколько надёжных подтверждений удалось найти.</small></p></div>
-          </div>
-        </div>
-        <div className="rail-block rail-note">
-          <Info size={17} />
-          <p>Одно название иногда используют по-разному. Атлас показывает эти варианты и объясняет, почему карточка стоит именно здесь.</p>
-        </div>
-      </aside>
-    );
-  }
-
-  const recentEntries = recent.map((id) => entryById.get(id)).filter((item): item is AtlasEntry => Boolean(item) && item!.id !== entry.id).slice(0, 4);
-  return (
-    <aside className="context-rail">
-      <div className="rail-block">
-        <span className="section-kicker">Профиль звука</span>
-        <h3>{entry.name}</h3>
-        <ProfileBars entry={entry} />
-      </div>
-      <div className="rail-block facts-list">
-        <div><span>Период</span><strong>{entry.era}</strong></div>
-        <div><span>Большая ветка</span><strong>{getFamily(entry.family).name}</strong></div>
-        <div><span>Тип</span><strong>{entityKindLabels[entry.entityKind]}</strong></div>
-        <div><span>Термин</span><strong>{maturityLabels[entry.maturity].label}</strong></div>
-        <div><span>Уверенность</span><strong>{confidenceLabels[entry.confidence].label}</strong></div>
-      </div>
-      {entry.tags.length > 0 && (
-        <div className="rail-block">
-          <span className="section-kicker">Метки</span>
-          <div className="tag-cloud">{entry.tags.map((tag) => <span key={tag}>#{tag}</span>)}</div>
-        </div>
-      )}
-      {recentEntries.length > 0 && (
-        <div className="rail-block">
-          <span className="section-kicker">Недавно смотрел</span>
-          <div className="recent-list">
-            {recentEntries.map((item) => <button key={item.id} onClick={() => onSelect(item)}>{item.name}<ArrowRight size={13} /></button>)}
-          </div>
-        </div>
-      )}
-    </aside>
-  );
-}
-
 export default function AtlasApp() {
   const [view, setView] = useState<ViewMode>("home");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -180,6 +125,9 @@ export default function AtlasApp() {
   const searchRef = useRef<HTMLInputElement>(null);
 
   const selected = selectedId ? entryById.get(selectedId) ?? null : null;
+  const contextRecentEntries = selected
+    ? recent.map((id) => entryById.get(id)).filter((item): item is AtlasEntry => Boolean(item) && item!.id !== selected.id).slice(0, 4)
+    : [];
   const selectedFamily = selected ? getFamily(selected.family) : null;
   const selectedLineage = selected ? getLineage(selected).filter((node) => node.id !== selected.id) : [];
   const selectedChildren = selected ? getChildren(selected.id) : [];
@@ -562,7 +510,7 @@ export default function AtlasApp() {
           )}
         </main>
       }
-      contextRail={<ContextRail entry={selected} recent={recent} onSelect={selectEntry} />}
+      contextRail={<ContextRail selectedEntry={selected} recentEntries={contextRecentEntries} onSelect={selectEntry} />}
       compareTray={
         compareIds.length > 0 && view !== "compare" && (
           <div className="compare-tray">
