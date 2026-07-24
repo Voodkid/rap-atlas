@@ -20,6 +20,7 @@ import { GlossaryDrawer } from "@/features/glossary/GlossaryDrawer";
 import { glossary } from "@/features/glossary/glossary-data";
 import { FinderView } from "@/features/finder/FinderView";
 import { bassOptions, focusOptions, getFinderResults, melodyOptions, rhythmOptions } from "@/features/finder/model";
+import { matchesEntryFilters } from "@/features/navigation/entryFilters";
 import { GenreTree } from "@/features/navigation/GenreTree";
 import { GlobalSearch } from "@/features/search/GlobalSearch";
 import { AtlasShell } from "@/features/shell/AtlasShell";
@@ -109,9 +110,7 @@ export default function AtlasApp() {
   const visibleIds = useMemo(() => {
     const visible = new Set<string>();
     entries.forEach((entry) => {
-      const inScope = scope === "all" || entry.researchState === "reviewed";
-      const allowed = showDisputed || (entry.maturity !== "disputed" && entry.maturity !== "unconfirmed");
-      if (inScope && allowed) {
+      if (matchesEntryFilters(entry, { scope, showDisputed })) {
         visible.add(entry.id);
         getLineage(entry).forEach((node) => visible.add(node.id));
       }
@@ -121,8 +120,7 @@ export default function AtlasApp() {
 
   const searchResults = useMemo(
     () => searchEntries(query).filter(({ entry }) =>
-      (scope === "all" || entry.researchState === "reviewed") &&
-      (showDisputed || (entry.maturity !== "disputed" && entry.maturity !== "unconfirmed"))),
+      matchesEntryFilters(entry, { scope, showDisputed })),
     [query, scope, showDisputed],
   );
 
