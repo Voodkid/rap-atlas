@@ -116,7 +116,7 @@ function parseRawEntries() {
 }
 
 const rawEntries = parseRawEntries();
-if (rawEntries.length !== 253) throw new Error(`Ожидалось 253 исходные карточки, найдено ${rawEntries.length}`);
+if (rawEntries.length !== 250) throw new Error(`Ожидалось 250 исходных карточек, найдено ${rawEntries.length}`);
 const rawById = new Map(rawEntries.map((entry) => [entry.id, entry]));
 
 function rawEntryForResearchNumber(number) {
