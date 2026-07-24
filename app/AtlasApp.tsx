@@ -8,19 +8,15 @@ import {
   BookOpen,
   ChevronRight,
   CircleHelp,
-  Columns3,
   Compass,
-  Database,
   Ear,
   ExternalLink,
   FileWarning,
   GitCompareArrows,
   Info,
-  ListFilter,
   MessageSquareWarning,
   Music2,
   Search,
-  ShieldCheck,
   SlidersHorizontal,
   Sparkles,
   Workflow,
@@ -28,6 +24,10 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BookmarksView } from "@/features/bookmarks/BookmarksView";
+import { CompareView } from "@/features/legacy-tools/CompareView";
+import { EditorView } from "@/features/legacy-tools/EditorView";
+import { GuideView } from "@/features/legacy-tools/GuideView";
+import type { EditorDraft } from "@/features/legacy-tools/types";
 import { GlossaryDrawer } from "@/features/glossary/GlossaryDrawer";
 import { glossary } from "@/features/glossary/glossary-data";
 import { FinderView } from "@/features/finder/FinderView";
@@ -43,7 +43,6 @@ import { MaturityBadge } from "@/shared/ui/MaturityBadge";
 import { ResearchBadge } from "@/shared/ui/ResearchBadge";
 import {
   AtlasEntry,
-  EntityKind,
   EntryStatus,
   confidenceLabels,
   entries,
@@ -62,6 +61,8 @@ import {
 } from "./atlas-data";
 
 const reviewedTotal = entries.filter((entry) => entry.researchState === "reviewed").length;
+
+const emptyEditorDraft: EditorDraft = { id: "", name: "", summary: "", entityKind: "microgenre", maturity: "local", confidence: "medium", verdict: "", history: "", listenFor: "", production: "", sources: "" };
 
 const statusSymbol: Record<EntryStatus, string> = {
   established: "●",
@@ -543,124 +544,6 @@ function ContextRail({ entry, recent, onSelect }: { entry: AtlasEntry | null; re
   );
 }
 
-function CompareView({ ids, onSelect, onRemove }: { ids: string[]; onSelect: (entry: AtlasEntry) => void; onRemove: (id: string) => void }) {
-  const compared = ids.map((id) => entryById.get(id)).filter(Boolean) as AtlasEntry[];
-  return (
-    <div className="compare-view">
-      <div className="collection-heading"><Columns3 size={24} /><div><span className="section-kicker">По пунктам</span><h1>Сравнение</h1></div></div>
-      {compared.length >= 2 ? (
-        <div className="compare-grid" style={{ gridTemplateColumns: `repeat(${compared.length}, minmax(0, 1fr))` }}>
-          {compared.map((entry) => {
-            const family = getFamily(entry.family);
-            return (
-              <article className="compare-card" key={entry.id} style={{ borderTopColor: family.color }}>
-                <button className="compare-remove" onClick={() => onRemove(entry.id)} title="Убрать из сравнения"><X size={15} /></button>
-                <FamilyMark familyId={entry.family} />
-                <button className="compare-title" onClick={() => onSelect(entry)}>{entry.name}</button>
-                <div className="badge-stack"><EntityBadge kind={entry.entityKind} /><MaturityBadge entry={entry} /></div>
-                <section className="compare-differences">
-                  <span className="section-kicker">Сначала различия</span>
-                  <div className="compare-fact"><span>Как узнать</span><p>{entry.signature}</p></div>
-                  <div className="compare-fact"><span>Бас</span><p>{entry.bass}</p></div>
-                  <div className="compare-fact"><span>Драмка</span><p>{entry.drums}</p></div>
-                  <div className="compare-fact"><span>Граница</span><p>{entry.confusions[0] ?? "Ещё не проверена."}</p></div>
-                </section>
-                <details className="compare-common">
-                  <summary>Показать остальные параметры</summary>
-                  <ProfileBars entry={entry} compact />
-                  <div className="compare-fact"><span>Настроение</span><p>{entry.mood}</p></div>
-                  <div className="compare-fact"><span>Темп</span><p>{entry.tempo}</p></div>
-                  <div className="compare-fact"><span>Период</span><p>{entry.era}</p></div>
-                </details>
-              </article>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="empty-state"><GitCompareArrows size={30} /><h2>Добавь хотя бы две карточки</h2><p>Кнопка сравнения находится справа от названия. Одновременно можно сравнить три направления.</p></div>
-      )}
-    </div>
-  );
-}
-
-function GuideView({ onEditor }: { onEditor: () => void }) {
-  const axes = [
-    { title: "Что обозначает название?", text: "Это может быть жанр, круг артистов, стиль продюсеров, смесь двух направлений или просто тег для поиска." },
-    { title: "Насколько часто так говорят?", text: "От общего названия, которым пользуются многие, до редкого молодого тега." },
-    { title: "Насколько хорошо это проверено?", text: "Смотрим, есть ли надёжные источники, примеры музыки и использование названия самими участниками." },
-  ];
-  return (
-    <div className="guide-view">
-      <section className="guide-hero"><span className="section-kicker">Как работает RAP ATLAS 2.0</span><h1>Сразу видно,<br />что перед тобой.</h1><p>Одно слово может означать жанр, круг артистов или просто тег для поиска. Мы показываем это отдельно. Дерево помогает найти направление, а карточка простыми словами объясняет его место в музыке.</p></section>
-      <section className="detail-section"><div className="section-heading"><div><span className="section-kicker">Три простых вопроса</span><h2>Одной плашки «статус» было недостаточно</h2></div></div><div className="method-axis-grid">{axes.map((axis, index) => <div key={axis.title}><span>0{index + 1}</span><h3>{axis.title}</h3><p>{axis.text}</p></div>)}</div></section>
-      <section className="detail-section guide-process"><div><span className="section-kicker">Как проходит проверка</span><h2>Что мы делаем перед публикацией карточки</h2></div><ol><li><strong>Проверяем название</strong><p>Выясняем, кто так говорит, когда появилось слово и не изменился ли его смысл.</p></li><li><strong>Подбираем треки</strong><p>Берём ранние, основные, новые и пограничные примеры. Отдельно отмечаем треки, которые сюда относят ошибочно.</p></li><li><strong>Слушаем по одному плану</strong><p>Проверяем ритм, ударные, бас, мелодию, вокал, построение трека и микс.</p></li><li><strong>Сравниваем с соседями</strong><p>Показываем, что у направлений общего и какое отличие действительно слышно.</p></li><li><strong>Решение проверяет человек</strong><p>ИИ помогает искать материалы, но не решает сам, что считать жанром.</p></li></ol></section>
-      <section className="detail-section source-priority"><div><span className="section-kicker">Каким источникам верим больше</span><h2>Сначала участники сцены, потом чужие пересказы</h2></div><div><p><b>1.</b> Интервью артистов и продюсеров, их страницы и первые загрузки.</p><p><b>2.</b> Материалы музыкальных изданий.</p><p><b>3.</b> Музыкальные каталоги и базы.</p><p><b>4.</b> Reddit, TikTok, YouTube и BeatStars показывают, что слово используют. Но одной такой ссылки мало, чтобы доказать историю жанра.</p></div></section>
-      <section className="detail-section editor-invite"><Database size={28} /><div><span className="section-kicker">Для следующих партий по 25</span><h2>Внутренний редактор уже готов</h2><p>Заполняешь карточку в форме, сразу видишь пробелы и копируешь готовый объект для базы.</p></div><button className="button button--primary" onClick={onEditor}>Открыть редактор <ArrowRight size={16} /></button></section>
-    </div>
-  );
-}
-
-type EditorDraft = {
-  id: string;
-  name: string;
-  summary: string;
-  entityKind: EntityKind;
-  maturity: AtlasEntry["maturity"];
-  confidence: AtlasEntry["confidence"];
-  verdict: string;
-  history: string;
-  listenFor: string;
-  production: string;
-  sources: string;
-};
-
-const emptyDraft: EditorDraft = { id: "", name: "", summary: "", entityKind: "microgenre", maturity: "local", confidence: "medium", verdict: "", history: "", listenFor: "", production: "", sources: "" };
-
-function EditorView() {
-  const [draft, setDraft] = useState<EditorDraft>(emptyDraft);
-  const [copied, setCopied] = useState(false);
-  const update = <K extends keyof EditorDraft>(key: K, value: EditorDraft[K]) => setDraft((current) => ({ ...current, [key]: value }));
-  const lines = (value: string) => value.split("\n").map((line) => line.trim()).filter(Boolean);
-  const missing = [
-    !draft.id && "ID",
-    !draft.name && "название",
-    !draft.summary && "короткое объяснение",
-    lines(draft.listenFor).length < 3 && "три слышимых признака",
-    lines(draft.production).length < 2 && "продюсерские заметки",
-    !draft.history && "история термина",
-    lines(draft.sources).length === 0 && "источники",
-  ].filter(Boolean) as string[];
-  const output = JSON.stringify({
-    id: draft.id.trim(), name: draft.name.trim(), summary: draft.summary.trim(), entityKind: draft.entityKind,
-    maturity: draft.maturity, confidence: draft.confidence, verdict: draft.verdict.trim(), history: draft.history.trim(),
-    listenFor: lines(draft.listenFor), production: lines(draft.production),
-    sources: lines(draft.sources).map((url) => ({ label: "Уточнить подпись", url })),
-  }, null, 2);
-  const copy = async () => { try { await navigator.clipboard.writeText(output); setCopied(true); window.setTimeout(() => setCopied(false), 1600); } catch { setCopied(false); } };
-  return (
-    <div className="editor-view">
-      <section className="editor-hero"><span className="section-kicker">Работает только на этом компьютере</span><h1>Черновик карточки</h1><p>Форма ничего не публикует. Она помогает заполнить все поля одинаково и подготовить данные к ручной проверке.</p></section>
-      <div className="editor-layout">
-        <form className="editor-form" onSubmit={(event) => event.preventDefault()}>
-          <div className="editor-row"><label>ID<input value={draft.id} onChange={(event) => update("id", event.target.value)} placeholder="lowercase-with-dashes" /></label><label>Название<input value={draft.name} onChange={(event) => update("name", event.target.value)} /></label></div>
-          <label>Что это одной фразой<textarea value={draft.summary} onChange={(event) => update("summary", event.target.value)} rows={3} /></label>
-          <div className="editor-row"><label>Что это<select value={draft.entityKind} onChange={(event) => update("entityKind", event.target.value as EntityKind)}>{Object.entries(entityKindLabels).map(([id, label]) => <option value={id} key={id}>{label}</option>)}</select></label><label>Как часто используют название<select value={draft.maturity} onChange={(event) => update("maturity", event.target.value as AtlasEntry["maturity"])}>{Object.entries(maturityLabels).filter(([id]) => id !== "unreviewed").map(([id, item]) => <option value={id} key={id}>{item.label}</option>)}</select></label><label>Насколько хорошо проверено<select value={draft.confidence} onChange={(event) => update("confidence", event.target.value as AtlasEntry["confidence"])}>{Object.entries(confidenceLabels).filter(([id]) => id !== "unreviewed").map(([id, item]) => <option value={id} key={id}>{item.label}</option>)}</select></label></div>
-          <label>Куда поставить карточку и почему<textarea value={draft.verdict} onChange={(event) => update("verdict", event.target.value)} rows={3} /></label>
-          <label>История названия<textarea value={draft.history} onChange={(event) => update("history", event.target.value)} rows={5} /></label>
-          <div className="editor-row"><label>Что слушать — по строке на признак<textarea value={draft.listenFor} onChange={(event) => update("listenFor", event.target.value)} rows={6} placeholder={"длинный чистый саб\nредкий сухой клэп\nпэд меняется медленно"} /></label><label>Продюсеру — по строке на заметку<textarea value={draft.production} onChange={(event) => update("production", event.target.value)} rows={6} /></label></div>
-          <label>Источники — по одной ссылке на строку<textarea value={draft.sources} onChange={(event) => update("sources", event.target.value)} rows={5} /></label>
-        </form>
-        <aside className="editor-preview">
-          <div className={cn("completion-card", missing.length === 0 && "completion-card--ready")}><span>{missing.length === 0 ? <ShieldCheck size={20} /> : <ListFilter size={20} />}</span><div><strong>{missing.length === 0 ? "Основные поля заполнены" : `Осталось: ${missing.length}`}</strong>{missing.length > 0 && <ul>{missing.map((item) => <li key={item}>{item}</li>)}</ul>}</div></div>
-          <pre>{output}</pre>
-          <button className="button button--primary" onClick={copy}>{copied ? "Скопировано" : "Скопировать готовые данные"}</button>
-          <button className="button button--ghost" onClick={() => setDraft(emptyDraft)}>Очистить форму</button>
-        </aside>
-      </div>
-    </div>
-  );
-}
-
 export default function AtlasApp() {
   const [view, setView] = useState<ViewMode>("home");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -688,10 +571,13 @@ export default function AtlasApp() {
   const [finderReference, setFinderReference] = useState("");
   const [finderReviewedOnly, setFinderReviewedOnly] = useState(true);
   const [finderShowDisputed, setFinderShowDisputed] = useState(false);
+  const [editorDraft, setEditorDraft] = useState<EditorDraft>(emptyEditorDraft);
+  const [editorCopied, setEditorCopied] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
 
   const selected = selectedId ? entryById.get(selectedId) ?? null : null;
   const bookmarkedEntries = bookmarks.map((id) => entryById.get(id)).filter(Boolean) as AtlasEntry[];
+  const comparedEntries = compareIds.map((id) => entryById.get(id)).filter(Boolean) as AtlasEntry[];
   const visibleIds = useMemo(() => {
     const visible = new Set<string>();
     entries.forEach((entry) => {
@@ -711,6 +597,23 @@ export default function AtlasApp() {
       (showDisputed || (entry.maturity !== "disputed" && entry.maturity !== "unconfirmed"))),
     [query, scope, showDisputed],
   );
+
+  const editorLines = (value: string) => value.split("\n").map((line) => line.trim()).filter(Boolean);
+  const editorMissing = [
+    !editorDraft.id && "ID",
+    !editorDraft.name && "название",
+    !editorDraft.summary && "короткое объяснение",
+    editorLines(editorDraft.listenFor).length < 3 && "три слышимых признака",
+    editorLines(editorDraft.production).length < 2 && "продюсерские заметки",
+    !editorDraft.history && "история термина",
+    editorLines(editorDraft.sources).length === 0 && "источники",
+  ].filter(Boolean) as string[];
+  const editorOutput = JSON.stringify({
+    id: editorDraft.id.trim(), name: editorDraft.name.trim(), summary: editorDraft.summary.trim(), entityKind: editorDraft.entityKind,
+    maturity: editorDraft.maturity, confidence: editorDraft.confidence, verdict: editorDraft.verdict.trim(), history: editorDraft.history.trim(),
+    listenFor: editorLines(editorDraft.listenFor), production: editorLines(editorDraft.production),
+    sources: editorLines(editorDraft.sources).map((url) => ({ label: "Уточнить подпись", url })),
+  }, null, 2);
 
   const finderResults = useMemo(() => {
     const maps: Record<string, string[]> = {
@@ -827,8 +730,26 @@ export default function AtlasApp() {
     setFinderShowDisputed(false);
   };
 
+  const updateEditorDraft = <K extends keyof EditorDraft>(key: K, value: EditorDraft[K]) => setEditorDraft((current) => ({ ...current, [key]: value }));
+
+  const copyEditorDraft = async () => {
+    try {
+      await navigator.clipboard.writeText(editorOutput);
+      setEditorCopied(true);
+      window.setTimeout(() => setEditorCopied(false), 1600);
+    } catch {
+      setEditorCopied(false);
+    }
+  };
+
+  const resetEditorState = () => {
+    setEditorDraft(emptyEditorDraft);
+    setEditorCopied(false);
+  };
+
   const selectEntry = (entry: AtlasEntry, pushHistory = true) => {
     resetFinderState();
+    resetEditorState();
     setSelectedId(entry.id);
     setView("home");
     setQuery("");
@@ -860,6 +781,7 @@ export default function AtlasApp() {
 
   const showView = (next: ViewMode) => {
     if (next !== "finder") resetFinderState();
+    if (next !== "editor") resetEditorState();
     setView(next);
     setSelectedId(null);
     setQuery("");
@@ -975,11 +897,22 @@ export default function AtlasApp() {
           ) : view === "bookmarks" ? (
             <BookmarksView entries={bookmarkedEntries} getFamily={getFamily} onSelect={selectEntry} />
           ) : view === "compare" ? (
-            <CompareView ids={compareIds} onSelect={selectEntry} onRemove={(id) => toggleCompare(id)} />
+            <CompareView entries={comparedEntries} getFamily={getFamily} renderProfileBars={(entry) => <ProfileBars entry={entry} compact />} onSelect={selectEntry} onRemove={(id) => toggleCompare(id)} />
           ) : view === "guide" ? (
             <GuideView onEditor={() => showView("editor")} />
           ) : view === "editor" ? (
-            <EditorView />
+            <EditorView
+              draft={editorDraft}
+              copied={editorCopied}
+              missing={editorMissing}
+              output={editorOutput}
+              entityKindLabels={entityKindLabels}
+              maturityLabels={maturityLabels}
+              confidenceLabels={confidenceLabels}
+              onUpdate={updateEditorDraft}
+              onCopy={copyEditorDraft}
+              onReset={() => setEditorDraft(emptyEditorDraft)}
+            />
           ) : selected ? (
             <DetailView
               key={selected.id}
