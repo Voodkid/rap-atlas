@@ -7,7 +7,6 @@ import {
   Bookmark,
   BookmarkCheck,
   BookOpen,
-  ChevronDown,
   ChevronRight,
   CircleHelp,
   Columns3,
@@ -32,6 +31,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GlossaryDrawer } from "@/features/glossary/GlossaryDrawer";
 import { glossary } from "@/features/glossary/glossary-data";
+import { GenreTree } from "@/features/navigation/GenreTree";
 import { AtlasShell } from "@/features/shell/AtlasShell";
 import type { DetailTab, KnowledgeScope, ViewMode } from "@/features/shell/model";
 import { useStoredList } from "@/shared/hooks/useStoredList";
@@ -133,68 +133,6 @@ function ProfileBars({ entry, compact = false }: { entry: AtlasEntry; compact?: 
           </div>
         </div>
       ))}
-    </div>
-  );
-}
-
-function TreeBranch({
-  entry,
-  selectedId,
-  expandedNodes,
-  setExpandedNodes,
-  onSelect,
-  visibleIds,
-  depth = 0,
-}: {
-  entry: AtlasEntry;
-  selectedId: string | null;
-  expandedNodes: Set<string>;
-  setExpandedNodes: (next: Set<string>) => void;
-  onSelect: (entry: AtlasEntry) => void;
-  visibleIds: Set<string>;
-  depth?: number;
-}) {
-  const children = getChildren(entry.id).filter((child) => visibleIds.has(child.id));
-  const expanded = expandedNodes.has(entry.id);
-  const toggle = () => {
-    const next = new Set(expandedNodes);
-    if (expanded) next.delete(entry.id);
-    else next.add(entry.id);
-    setExpandedNodes(next);
-  };
-
-  return (
-    <div className="tree-branch">
-      <div className={cn("tree-row", selectedId === entry.id && "tree-row--active")} style={{ paddingLeft: depth * 13 }}>
-        {children.length ? (
-          <button className="tree-toggle" onClick={toggle} title={expanded ? "Свернуть ветку" : "Развернуть ветку"}>
-            {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-          </button>
-        ) : (
-          <span className="tree-toggle tree-toggle--empty" />
-        )}
-        <button className="tree-name" onClick={() => onSelect(entry)}>
-          <span className={`tree-symbol tree-symbol--${entry.status}`}>{statusSymbol[entry.status]}</span>
-          <span>{entry.name}</span>
-          {entry.researchState === "reviewed" && <BadgeCheck className="tree-reviewed" size={11} />}
-        </button>
-      </div>
-      {expanded && children.length > 0 && (
-        <div className="tree-children">
-          {children.map((child) => (
-            <TreeBranch
-              key={child.id}
-              entry={child}
-              selectedId={selectedId}
-              expandedNodes={expandedNodes}
-              setExpandedNodes={setExpandedNodes}
-              onSelect={onSelect}
-              visibleIds={visibleIds}
-              depth={depth + 1}
-            />
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -1105,48 +1043,25 @@ export default function AtlasApp() {
         </div>
       }
       navigationContent={
-        <>
-          <div className="nav-filters">
-            <span className="section-kicker">Показывать в дереве</span>
-            <div><button className={scope === "all" ? "active" : ""} onClick={() => setScope("all")}>Вся база</button><button className={scope === "reviewed" ? "active" : ""} onClick={() => setScope("reviewed")}>Проверенные {reviewedTotal}</button></div>
-            <label><input type="checkbox" checked={showDisputed} onChange={(event) => setShowDisputed(event.target.checked)} /> Совсем спорные теги</label>
-          </div>
-          <div className="nav-divider"><span>{scope === "reviewed" ? "Проверенная часть" : "Все ветки"}</span><b>{visibleIds.size}</b></div>
-          <div className="family-tree">
-            {families.map((family) => {
-              const root = entryById.get(family.root);
-              if (!root) return null;
-              const expanded = expandedFamilies.has(family.id);
-              const familyCount = entries.filter((entry) => entry.family === family.id && visibleIds.has(entry.id)).length;
-              if (familyCount === 0) return null;
-              return (
-                <div className="family-tree__group" key={family.id}>
-                  <button
-                    className={cn("family-tree__header", selected?.family === family.id && "family-tree__header--active")}
-                    onClick={() => {
-                      const next = new Set(expandedFamilies);
-                      if (expanded) next.delete(family.id); else next.add(family.id);
-                      setExpandedFamilies(next);
-                    }}
-                  >
-                    <span className="family-tree__bar" style={{ backgroundColor: family.color }} />
-                    <span><small>{family.code}</small><strong>{family.name}</strong></span>
-                    <b>{familyCount}</b>
-                    {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                  </button>
-                  {expanded && (
-                    <div className="family-tree__content">
-                      <TreeBranch entry={root} selectedId={selectedId} expandedNodes={expandedNodes} setExpandedNodes={setExpandedNodes} onSelect={selectEntry} visibleIds={visibleIds} />
-                      {entries.filter((entry) => entry.family === family.id && !entry.parent && entry.id !== root.id && visibleIds.has(entry.id)).map((extraRoot) => (
-                        <TreeBranch key={extraRoot.id} entry={extraRoot} selectedId={selectedId} expandedNodes={expandedNodes} setExpandedNodes={setExpandedNodes} onSelect={selectEntry} visibleIds={visibleIds} />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </>
+        <GenreTree
+          entries={entries}
+          families={families}
+          entryById={entryById}
+          getChildren={getChildren}
+          reviewedTotal={reviewedTotal}
+          scope={scope}
+          showDisputed={showDisputed}
+          visibleIds={visibleIds}
+          selectedId={selectedId}
+          selectedFamilyId={selected?.family}
+          expandedFamilies={expandedFamilies}
+          expandedNodes={expandedNodes}
+          onScopeChange={setScope}
+          onShowDisputedChange={setShowDisputed}
+          onExpandedFamiliesChange={setExpandedFamilies}
+          onExpandedNodesChange={setExpandedNodes}
+          onSelect={selectEntry}
+        />
       }
       mainContent={
         <main className="atlas-main">
