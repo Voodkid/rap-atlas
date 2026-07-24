@@ -18,6 +18,7 @@ import type { EditorDraft } from "@/features/legacy-tools/types";
 import { GlossaryDrawer } from "@/features/glossary/GlossaryDrawer";
 import { glossary } from "@/features/glossary/glossary-data";
 import { FinderView } from "@/features/finder/FinderView";
+import { bassOptions, focusOptions, getFinderResults, melodyOptions, rhythmOptions } from "@/features/finder/model";
 import { GenreTree } from "@/features/navigation/GenreTree";
 import { GlobalSearch } from "@/features/search/GlobalSearch";
 import { AtlasShell } from "@/features/shell/AtlasShell";
@@ -53,44 +54,6 @@ const statusSymbol: Record<EntryStatus, string> = {
   misnomer: "×",
   umbrella: "◎",
 };
-
-const focusOptions = [
-  { id: "bass", label: "Бас" },
-  { id: "drums", label: "Драмка" },
-  { id: "melody", label: "Мелодия" },
-  { id: "vocals", label: "Вокал" },
-];
-
-const bassOptions = [
-  { id: "short", label: "Короткий" },
-  { id: "long", label: "Длинный" },
-  { id: "clean", label: "Чистый саб" },
-  { id: "distorted", label: "С перегрузом" },
-  { id: "slides", label: "Со slides" },
-  { id: "lead", label: "808 играет мелодию" },
-  { id: "barely", label: "Едва слышный" },
-];
-
-const rhythmOptions = [
-  { id: "sparse", label: "Редкая драмка" },
-  { id: "dense", label: "Плотная" },
-  { id: "broken", label: "Ломаная драмка" },
-  { id: "club", label: "Клубный ритм" },
-  { id: "swing", label: "Со swing" },
-  { id: "bounce", label: "Сильно качает" },
-  { id: "straight", label: "Прямая" },
-  { id: "beatless", label: "Почти без ударных" },
-];
-
-const melodyOptions = [
-  { id: "chords", label: "Аккордовая" },
-  { id: "loop", label: "Короткий луп" },
-  { id: "sample", label: "Сэмпловая" },
-  { id: "drone", label: "Одна длинная нота или пэд" },
-  { id: "minimal", label: "Почти отсутствует" },
-  { id: "bright", label: "Яркий плак" },
-  { id: "dark", label: "Тёмная, ноты звучат напряжённо" },
-];
 
 export default function AtlasApp() {
   const [view, setView] = useState<ViewMode>("home");
@@ -181,40 +144,21 @@ export default function AtlasApp() {
     sources: editorLines(editorDraft.sources).map((url) => ({ label: "Уточнить подпись", url })),
   }, null, 2);
 
-  const finderResults = useMemo(() => {
-    const maps: Record<string, string[]> = {
-      short: ["коротк", "short", "импульс"], long: ["длин", "long", "хвост"], clean: ["чист", "саб", "soft"],
-      distorted: ["перегруз", "клип", "искаж", "distort"], slides: ["slide", "скольз"], lead: ["как лид", "формант", "визж", "бульк"], barely: ["едва", "тих", "barely"],
-      sparse: ["редк", "пуст", "пау", "sparse"], dense: ["плотн", "част", "dense"], broken: ["ломан", "сбив", "stop-start", "неров"],
-      club: ["club", "jersey", "клуб", "прямой боч"], swing: ["swing", "смещ"], bounce: ["bounce", "баунс", "пруж"], straight: ["прям", "four-on"], beatless: ["без удар", "драмки нет", "near-beatless"],
-      chords: ["аккорд", "гармони", "r&b", "gospel"], loop: ["луп", "loop", "plack", "плак"], sample: ["сэмпл", "sample", "вокальн нарез"],
-      drone: ["дрон", "пэд", "pad", "протяж"], minimal: ["мелодии нет", "почти отсутств", "один тон"], bright: ["ярк", "колоколь", "плак"], dark: ["тём", "мрач", "диссон"],
-    };
-    const optionLabel = new Map([...bassOptions, ...rhythmOptions, ...melodyOptions].map((option) => [option.id, option.label.toLowerCase()]));
-    const referenceLower = finderReference.trim().toLowerCase();
-    const scored = entries
-      .filter((entry) => (!finderReviewedOnly || entry.researchState === "reviewed"))
-      .filter((entry) => finderShowDisputed || (entry.maturity !== "disputed" && entry.maturity !== "unconfirmed"))
-      .map((entry) => {
-        let score = 24 - Math.abs(entry.profile.energy - finderEnergy) * 3 - Math.abs(entry.profile.ambience - finderSpace) * 2 - Math.abs(entry.profile.distortion - finderDistortion) * 2;
-        const text = `${entry.name} ${entry.summary} ${entry.signature} ${entry.bass} ${entry.drums} ${entry.mood} ${entry.listenFor.join(" ")} ${entry.production.join(" ")} ${entry.tags.join(" ")} ${entry.artists.join(" ")} ${entry.producers.join(" ")}`.toLowerCase();
-        const reasons: string[] = [];
-        const selected = [...finderBass, ...finderRhythm, ...finderMelody];
-        for (const choice of selected) {
-          const hits = (maps[choice] ?? []).filter((word) => text.includes(word)).length;
-          if (hits > 0) { score += 7 + hits * 2; reasons.push(optionLabel.get(choice) ?? choice); }
-          else score -= 2;
-        }
-        if (finderFocus.includes("bass")) { score += entry.profile.bassWeight * 2; reasons.push("выразительный низ"); }
-        if (finderFocus.includes("drums")) { score += entry.profile.bounce * 2; reasons.push("характерная драмка"); }
-        if (finderFocus.includes("melody")) { score += entry.profile.ambience * 2; reasons.push("мелодия заметнее остальных слоёв"); }
-        if (finderFocus.includes("vocals") && (entry.artists.length || text.includes("вокал"))) { score += 7; reasons.push("характерный вокал"); }
-        if (referenceLower && text.includes(referenceLower)) { score += 25; reasons.unshift(`референс «${finderReference.trim()}»`); }
-        return { entry, score, reasons: [...new Set(reasons)].slice(0, 3) };
-      })
-      .sort((a, b) => b.score - a.score || a.entry.name.localeCompare(b.entry.name));
-    return scored.slice(0, 12);
-  }, [finderFocus, finderBass, finderRhythm, finderMelody, finderEnergy, finderSpace, finderDistortion, finderReference, finderReviewedOnly, finderShowDisputed]);
+  const finderResults = useMemo(
+    () => getFinderResults(entries, {
+      focus: finderFocus,
+      bass: finderBass,
+      rhythm: finderRhythm,
+      melody: finderMelody,
+      energy: finderEnergy,
+      space: finderSpace,
+      distortion: finderDistortion,
+      reference: finderReference,
+      reviewedOnly: finderReviewedOnly,
+      showDisputed: finderShowDisputed,
+    }),
+    [finderFocus, finderBass, finderRhythm, finderMelody, finderEnergy, finderSpace, finderDistortion, finderReference, finderReviewedOnly, finderShowDisputed],
+  );
 
   useEffect(() => {
     let cancelled = false;
