@@ -76,11 +76,12 @@ test("the 250 reviewed records have one-to-one research and sound data", async (
   const researchIds = researchEntries.map((entry) => entry.key);
 
   assert.equal(new Set(ids).size, ids.length, "raw atlas contains duplicate ids");
+  assert.equal(ids.length, 250, `expected 250 active records, got ${ids.length}`);
   assert.equal(new Set(researchIds).size, researchIds.length, "reviewed ids must be unique across manual and generated data");
   assert.equal(researchIds.length, 250, `expected 250 reviewed records, got ${researchIds.length}`);
   assert.deepEqual([...researchIds].sort(), [...soundIds].sort(), "every reviewed record must have its own bass, drums, mood and tempo");
   for (const id of researchIds) assert.ok(ids.includes(id), `reviewed id ${id} does not exist in the atlas`);
-  assert.deepEqual(ids.filter((id) => !researchIds.includes(id)).sort(), ["asia-dream", "mohcore", "punch-rock"], "only the final three cards may remain unreviewed");
+  assert.deepEqual(ids.filter((id) => !researchIds.includes(id)).sort(), [], "every active card must be reviewed");
 });
 
 test("strict parent links are valid and acyclic", async () => {
