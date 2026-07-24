@@ -3,7 +3,6 @@
 import {
   ArrowLeft,
   ArrowRight,
-  BadgeCheck,
   Bookmark,
   BookmarkCheck,
   BookOpen,
@@ -20,7 +19,6 @@ import {
   ListFilter,
   MessageSquareWarning,
   Music2,
-  RotateCcw,
   Search,
   ShieldCheck,
   SlidersHorizontal,
@@ -31,6 +29,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GlossaryDrawer } from "@/features/glossary/GlossaryDrawer";
 import { glossary } from "@/features/glossary/glossary-data";
+import { FinderView } from "@/features/finder/FinderView";
 import { GenreTree } from "@/features/navigation/GenreTree";
 import { GlobalSearch } from "@/features/search/GlobalSearch";
 import { AtlasShell } from "@/features/shell/AtlasShell";
@@ -543,129 +542,6 @@ function ContextRail({ entry, recent, onSelect }: { entry: AtlasEntry | null; re
   );
 }
 
-function FinderView({ onSelect }: { onSelect: (entry: AtlasEntry) => void }) {
-  const [focus, setFocus] = useState<string[]>(["bass"]);
-  const [bass, setBass] = useState<string[]>([]);
-  const [rhythm, setRhythm] = useState<string[]>([]);
-  const [melody, setMelody] = useState<string[]>([]);
-  const [energy, setEnergy] = useState(3);
-  const [space, setSpace] = useState(3);
-  const [distortion, setDistortion] = useState(2);
-  const [reference, setReference] = useState("");
-  const [reviewedOnly, setReviewedOnly] = useState(true);
-  const [showDisputed, setShowDisputed] = useState(false);
-
-  const reset = () => {
-    setFocus(["bass"]); setBass([]); setRhythm([]); setMelody([]);
-    setEnergy(3); setSpace(3); setDistortion(2); setReference("");
-  };
-
-  const results = useMemo(() => {
-    const maps: Record<string, string[]> = {
-      short: ["коротк", "short", "импульс"], long: ["длин", "long", "хвост"], clean: ["чист", "саб", "soft"],
-      distorted: ["перегруз", "клип", "искаж", "distort"], slides: ["slide", "скольз"], lead: ["как лид", "формант", "визж", "бульк"], barely: ["едва", "тих", "barely"],
-      sparse: ["редк", "пуст", "пау", "sparse"], dense: ["плотн", "част", "dense"], broken: ["ломан", "сбив", "stop-start", "неров"],
-      club: ["club", "jersey", "клуб", "прямой боч"], swing: ["swing", "смещ"], bounce: ["bounce", "баунс", "пруж"], straight: ["прям", "four-on"], beatless: ["без удар", "драмки нет", "near-beatless"],
-      chords: ["аккорд", "гармони", "r&b", "gospel"], loop: ["луп", "loop", "plack", "плак"], sample: ["сэмпл", "sample", "вокальн нарез"],
-      drone: ["дрон", "пэд", "pad", "протяж"], minimal: ["мелодии нет", "почти отсутств", "один тон"], bright: ["ярк", "колоколь", "плак"], dark: ["тём", "мрач", "диссон"],
-    };
-    const optionLabel = new Map([...bassOptions, ...rhythmOptions, ...melodyOptions].map((option) => [option.id, option.label.toLowerCase()]));
-    const referenceLower = reference.trim().toLowerCase();
-    const scored = entries
-      .filter((entry) => (!reviewedOnly || entry.researchState === "reviewed"))
-      .filter((entry) => showDisputed || (entry.maturity !== "disputed" && entry.maturity !== "unconfirmed"))
-      .map((entry) => {
-        let score = 24 - Math.abs(entry.profile.energy - energy) * 3 - Math.abs(entry.profile.ambience - space) * 2 - Math.abs(entry.profile.distortion - distortion) * 2;
-        const text = `${entry.name} ${entry.summary} ${entry.signature} ${entry.bass} ${entry.drums} ${entry.mood} ${entry.listenFor.join(" ")} ${entry.production.join(" ")} ${entry.tags.join(" ")} ${entry.artists.join(" ")} ${entry.producers.join(" ")}`.toLowerCase();
-        const reasons: string[] = [];
-        const selected = [...bass, ...rhythm, ...melody];
-        for (const choice of selected) {
-          const hits = (maps[choice] ?? []).filter((word) => text.includes(word)).length;
-          if (hits > 0) { score += 7 + hits * 2; reasons.push(optionLabel.get(choice) ?? choice); }
-          else score -= 2;
-        }
-        if (focus.includes("bass")) { score += entry.profile.bassWeight * 2; reasons.push("выразительный низ"); }
-        if (focus.includes("drums")) { score += entry.profile.bounce * 2; reasons.push("характерная драмка"); }
-        if (focus.includes("melody")) { score += entry.profile.ambience * 2; reasons.push("мелодия заметнее остальных слоёв"); }
-        if (focus.includes("vocals") && (entry.artists.length || text.includes("вокал"))) { score += 7; reasons.push("характерный вокал"); }
-        if (referenceLower && text.includes(referenceLower)) { score += 25; reasons.unshift(`референс «${reference.trim()}»`); }
-        return { entry, score, reasons: [...new Set(reasons)].slice(0, 3) };
-      })
-      .sort((a, b) => b.score - a.score || a.entry.name.localeCompare(b.entry.name));
-    return scored.slice(0, 12);
-  }, [focus, bass, rhythm, melody, energy, space, distortion, reference, reviewedOnly, showDisputed]);
-
-  return (
-    <div className="finder-view">
-      <section className="finder-hero">
-        <span className="section-kicker">Подбор по звуку</span>
-        <h1>Что ты реально слышишь?</h1>
-        <p>Можно выбрать несколько вариантов. Название жанра знать не нужно — атлас объяснит каждое предложение обычными слышимыми признаками.</p>
-      </section>
-      <div className="finder-layout">
-        <div className="finder-controls">
-          <MultiChoiceGroup title="1. Что важнее?" options={focusOptions} values={focus} onChange={setFocus} />
-          <MultiChoiceGroup title="2. Как звучит бас?" options={bassOptions} values={bass} onChange={setBass} />
-          <MultiChoiceGroup title="3. Какая драмка?" options={rhythmOptions} values={rhythm} onChange={setRhythm} />
-          <MultiChoiceGroup title="4. Какая мелодия?" options={melodyOptions} values={melody} onChange={setMelody} />
-          <div className="choice-group">
-            <div className="choice-group__title"><span>Тонкая настройка</span><button onClick={reset}><RotateCcw size={12} /> Сбросить</button></div>
-            <RangeControl label="Энергия" value={energy} onChange={setEnergy} left="спокойно" right="жёстко" />
-            <RangeControl label="Ширина и реверб" value={space} onChange={setSpace} left="сухо" right="широко" />
-            <RangeControl label="Перегруз" value={distortion} onChange={setDistortion} left="чисто" right="грязно" />
-          </div>
-          <div className="choice-group reference-field">
-            <div className="choice-group__title"><span>Референс — необязательно</span></div>
-            <input value={reference} onChange={(event) => setReference(event.target.value)} placeholder="Артист, продюсер или трек" />
-          </div>
-          <div className="finder-switches">
-            <label><input type="checkbox" checked={reviewedOnly} onChange={(event) => setReviewedOnly(event.target.checked)} /> Только проверенные ({reviewedTotal})</label>
-            <label><input type="checkbox" checked={showDisputed} onChange={(event) => setShowDisputed(event.target.checked)} /> Показывать спорные теги</label>
-          </div>
-        </div>
-        <div className="finder-results">
-          <div className="section-heading section-heading--compact">
-            <div><span className="section-kicker">Без выдуманных процентов</span><h2>{results.length} ближайших вариантов</h2></div>
-          </div>
-          {results.map(({ entry, score, reasons }, index) => {
-            const family = getFamily(entry.family);
-            const band = score >= 45 ? "Очень близко" : score >= 30 ? "Похоже" : "Стоит проверить";
-            return (
-              <button key={entry.id} className="finder-result" onClick={() => onSelect(entry)}>
-                <span className="finder-result__rank">{String(index + 1).padStart(2, "0")}</span>
-                <span className="finder-result__main">
-                  <span className="finder-result__meta"><span style={{ color: family.color }}>{family.name}</span><span>{entityKindLabels[entry.entityKind]}</span>{entry.researchState === "reviewed" && <BadgeCheck size={11} />}</span>
-                  <strong>{entry.name}</strong>
-                  <small>Предложили из-за: {reasons.length ? reasons.join(", ") : entry.signature.toLowerCase()}.</small>
-                  <em>Может не подойти: {(entry.confusions[0] ?? "границы этой карточки ещё не разобраны").toLowerCase()}</em>
-                </span>
-                <span className="finder-result__band">{band}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function MultiChoiceGroup({ title, options, values, onChange }: { title: string; options: Array<{ id: string; label: string }>; values: string[]; onChange: (value: string[]) => void }) {
-  return (
-    <div className="choice-group">
-      <div className="choice-group__title"><span>{title}</span></div>
-      <div className="choice-options">
-        {options.map((option) => (
-          <button key={option.id} className={values.includes(option.id) ? "active" : ""} onClick={() => onChange(values.includes(option.id) ? values.filter((id) => id !== option.id) : [...values, option.id])}>{option.label}</button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function RangeControl({ label, value, onChange, left, right }: { label: string; value: number; onChange: (value: number) => void; left: string; right: string }) {
-  return <label className="range-control"><span><b>{label}</b><em>{value}/5</em></span><input aria-label={label} type="range" min="1" max="5" value={value} onChange={(event) => onChange(Number(event.target.value))} /><small><i>{left}</i><i>{right}</i></small></label>;
-}
-
 function BookmarksView({ ids, onSelect }: { ids: string[]; onSelect: (entry: AtlasEntry) => void }) {
   const saved = ids.map((id) => entryById.get(id)).filter(Boolean) as AtlasEntry[];
   return (
@@ -827,6 +703,16 @@ export default function AtlasApp() {
   const [scope, setScope] = useState<KnowledgeScope>("all");
   const [showDisputed, setShowDisputed] = useState(true);
   const [glossaryOpen, setGlossaryOpen] = useState(false);
+  const [finderFocus, setFinderFocus] = useState<string[]>(["bass"]);
+  const [finderBass, setFinderBass] = useState<string[]>([]);
+  const [finderRhythm, setFinderRhythm] = useState<string[]>([]);
+  const [finderMelody, setFinderMelody] = useState<string[]>([]);
+  const [finderEnergy, setFinderEnergy] = useState(3);
+  const [finderSpace, setFinderSpace] = useState(3);
+  const [finderDistortion, setFinderDistortion] = useState(2);
+  const [finderReference, setFinderReference] = useState("");
+  const [finderReviewedOnly, setFinderReviewedOnly] = useState(true);
+  const [finderShowDisputed, setFinderShowDisputed] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
 
   const selected = selectedId ? entryById.get(selectedId) ?? null : null;
@@ -849,6 +735,41 @@ export default function AtlasApp() {
       (showDisputed || (entry.maturity !== "disputed" && entry.maturity !== "unconfirmed"))),
     [query, scope, showDisputed],
   );
+
+  const finderResults = useMemo(() => {
+    const maps: Record<string, string[]> = {
+      short: ["коротк", "short", "импульс"], long: ["длин", "long", "хвост"], clean: ["чист", "саб", "soft"],
+      distorted: ["перегруз", "клип", "искаж", "distort"], slides: ["slide", "скольз"], lead: ["как лид", "формант", "визж", "бульк"], barely: ["едва", "тих", "barely"],
+      sparse: ["редк", "пуст", "пау", "sparse"], dense: ["плотн", "част", "dense"], broken: ["ломан", "сбив", "stop-start", "неров"],
+      club: ["club", "jersey", "клуб", "прямой боч"], swing: ["swing", "смещ"], bounce: ["bounce", "баунс", "пруж"], straight: ["прям", "four-on"], beatless: ["без удар", "драмки нет", "near-beatless"],
+      chords: ["аккорд", "гармони", "r&b", "gospel"], loop: ["луп", "loop", "plack", "плак"], sample: ["сэмпл", "sample", "вокальн нарез"],
+      drone: ["дрон", "пэд", "pad", "протяж"], minimal: ["мелодии нет", "почти отсутств", "один тон"], bright: ["ярк", "колоколь", "плак"], dark: ["тём", "мрач", "диссон"],
+    };
+    const optionLabel = new Map([...bassOptions, ...rhythmOptions, ...melodyOptions].map((option) => [option.id, option.label.toLowerCase()]));
+    const referenceLower = finderReference.trim().toLowerCase();
+    const scored = entries
+      .filter((entry) => (!finderReviewedOnly || entry.researchState === "reviewed"))
+      .filter((entry) => finderShowDisputed || (entry.maturity !== "disputed" && entry.maturity !== "unconfirmed"))
+      .map((entry) => {
+        let score = 24 - Math.abs(entry.profile.energy - finderEnergy) * 3 - Math.abs(entry.profile.ambience - finderSpace) * 2 - Math.abs(entry.profile.distortion - finderDistortion) * 2;
+        const text = `${entry.name} ${entry.summary} ${entry.signature} ${entry.bass} ${entry.drums} ${entry.mood} ${entry.listenFor.join(" ")} ${entry.production.join(" ")} ${entry.tags.join(" ")} ${entry.artists.join(" ")} ${entry.producers.join(" ")}`.toLowerCase();
+        const reasons: string[] = [];
+        const selected = [...finderBass, ...finderRhythm, ...finderMelody];
+        for (const choice of selected) {
+          const hits = (maps[choice] ?? []).filter((word) => text.includes(word)).length;
+          if (hits > 0) { score += 7 + hits * 2; reasons.push(optionLabel.get(choice) ?? choice); }
+          else score -= 2;
+        }
+        if (finderFocus.includes("bass")) { score += entry.profile.bassWeight * 2; reasons.push("выразительный низ"); }
+        if (finderFocus.includes("drums")) { score += entry.profile.bounce * 2; reasons.push("характерная драмка"); }
+        if (finderFocus.includes("melody")) { score += entry.profile.ambience * 2; reasons.push("мелодия заметнее остальных слоёв"); }
+        if (finderFocus.includes("vocals") && (entry.artists.length || text.includes("вокал"))) { score += 7; reasons.push("характерный вокал"); }
+        if (referenceLower && text.includes(referenceLower)) { score += 25; reasons.unshift(`референс «${finderReference.trim()}»`); }
+        return { entry, score, reasons: [...new Set(reasons)].slice(0, 3) };
+      })
+      .sort((a, b) => b.score - a.score || a.entry.name.localeCompare(b.entry.name));
+    return scored.slice(0, 12);
+  }, [finderFocus, finderBass, finderRhythm, finderMelody, finderEnergy, finderSpace, finderDistortion, finderReference, finderReviewedOnly, finderShowDisputed]);
 
   useEffect(() => {
     let cancelled = false;
@@ -919,7 +840,19 @@ export default function AtlasApp() {
     return () => window.removeEventListener("keydown", handleKey);
   }, []);
 
+  const resetFinderControls = () => {
+    setFinderFocus(["bass"]); setFinderBass([]); setFinderRhythm([]); setFinderMelody([]);
+    setFinderEnergy(3); setFinderSpace(3); setFinderDistortion(2); setFinderReference("");
+  };
+
+  const resetFinderState = () => {
+    resetFinderControls();
+    setFinderReviewedOnly(true);
+    setFinderShowDisputed(false);
+  };
+
   const selectEntry = (entry: AtlasEntry, pushHistory = true) => {
+    resetFinderState();
     setSelectedId(entry.id);
     setView("home");
     setQuery("");
@@ -950,6 +883,7 @@ export default function AtlasApp() {
   };
 
   const showView = (next: ViewMode) => {
+    if (next !== "finder") resetFinderState();
     setView(next);
     setSelectedId(null);
     setQuery("");
@@ -1030,7 +964,38 @@ export default function AtlasApp() {
             </div>
           )}
           {view === "finder" ? (
-            <FinderView onSelect={selectEntry} />
+            <FinderView
+              focusOptions={focusOptions}
+              bassOptions={bassOptions}
+              rhythmOptions={rhythmOptions}
+              melodyOptions={melodyOptions}
+              focus={finderFocus}
+              bass={finderBass}
+              rhythm={finderRhythm}
+              melody={finderMelody}
+              energy={finderEnergy}
+              space={finderSpace}
+              distortion={finderDistortion}
+              reference={finderReference}
+              reviewedOnly={finderReviewedOnly}
+              showDisputed={finderShowDisputed}
+              reviewedTotal={reviewedTotal}
+              results={finderResults}
+              entityKindLabels={entityKindLabels}
+              getFamily={getFamily}
+              onFocusChange={setFinderFocus}
+              onBassChange={setFinderBass}
+              onRhythmChange={setFinderRhythm}
+              onMelodyChange={setFinderMelody}
+              onEnergyChange={setFinderEnergy}
+              onSpaceChange={setFinderSpace}
+              onDistortionChange={setFinderDistortion}
+              onReferenceChange={setFinderReference}
+              onReviewedOnlyChange={setFinderReviewedOnly}
+              onShowDisputedChange={setFinderShowDisputed}
+              onReset={resetFinderControls}
+              onSelect={selectEntry}
+            />
           ) : view === "bookmarks" ? (
             <BookmarksView ids={bookmarks} onSelect={selectEntry} />
           ) : view === "compare" ? (
