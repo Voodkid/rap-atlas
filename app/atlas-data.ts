@@ -2,98 +2,34 @@ import {
   researchOverrides,
   reviewedIds,
   reviewedSounds,
-  type EntityKind,
-  type RelationNote,
-  type ResearchConfidence,
-  type ResearchSource,
-  type TermMaturity,
-  type TrackExample,
 } from "./research-data";
+import type {
+  AtlasEntry,
+  EntityKind,
+  EntryStatus,
+  FamilyId,
+  FamilyMeta,
+  RelationNote,
+  ResearchConfidence,
+  TermMaturity,
+} from "./atlas-types";
 
-export type { EntityKind, RelationNote, ResearchConfidence, ResearchSource, TermMaturity, TrackExample };
-
-export type FamilyId =
-  | "cloud"
-  | "plugg"
-  | "ambient"
-  | "rhythm"
-  | "jerk"
-  | "digital"
-  | "hex"
-  | "rage"
-  | "regional"
-  | "phonk"
-  | "rock"
-  | "global";
-
-export type EntryStatus =
-  | "established"
-  | "emerging"
-  | "scene"
-  | "tag"
-  | "adjacent"
-  | "misnomer"
-  | "umbrella";
-
-export type SourceLink = { label: string; url: string };
-
-export type SoundProfile = {
-  energy: number;
-  distortion: number;
-  ambience: number;
-  bounce: number;
-  bassWeight: number;
-};
-
-export type AtlasEntry = {
-  id: string;
-  name: string;
-  family: FamilyId;
-  parent?: string;
-  status: EntryStatus;
-  summary: string;
-  signature: string;
-  bass: string;
-  drums: string;
-  mood: string;
-  tempo: string;
-  era: string;
-  aliases: string[];
-  artists: string[];
-  producers: string[];
-  related: string[];
-  tags: string[];
-  profile: SoundProfile;
-  source?: SourceLink;
-  researchState: "reviewed" | "legacy";
-  entityKind: EntityKind;
-  maturity: TermMaturity | "unreviewed";
-  confidence: ResearchConfidence | "unreviewed";
-  verdict: string;
-  history: string;
-  listenFor: string[];
-  production: string[];
-  confusions: string[];
-  sources: ResearchSource[];
-  relationNotes: RelationNote[];
-  examples: TrackExample[];
-  canonicalId?: string;
-  needsListeningCheck: boolean;
-  reviewedAt?: string;
-  researchBatch?: string;
-};
-
-export type FamilyMeta = {
-  id: FamilyId;
-  order: number;
-  code: string;
-  name: string;
-  short: string;
-  description: string;
-  color: string;
-  root: string;
-  defaults: Pick<AtlasEntry, "bass" | "drums" | "mood" | "tempo" | "era" | "profile">;
-};
+export type {
+  AtlasEntry,
+  AtlasIndexEntry,
+  EntryDetails,
+  EntryDetailsModule,
+  EntryId,
+  EntryStatus,
+  FamilyId,
+  FamilyMeta,
+  FinderDataEntry,
+  ResearchConfidence,
+  SearchIndexEntry,
+  SourceLink,
+  SoundProfile,
+} from "./atlas-types";
+export type { EntityKind, RelationNote, ResearchSource, TermMaturity, TrackExample } from "./atlas-types";
 
 export const families: FamilyMeta[] = [
   {

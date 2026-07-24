@@ -21,7 +21,7 @@
     "dev": "vinext dev",
     "build": "vinext build",
     "start": "vinext start",
-    "test": "vinext build && node --test tests/content-integrity.test.mjs tests/rendered-html.test.mjs",
+    "test": "vinext build && node --test tests/content-integrity.test.mjs tests/rendered-html.test.mjs tests/data-split-parity.test.mjs",
     "typecheck": "tsc --noEmit",
     "validate:content": "node --test tests/content-integrity.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
