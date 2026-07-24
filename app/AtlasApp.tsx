@@ -14,6 +14,7 @@ import { HomeView } from "@/features/home/HomeView";
 import { CompareView } from "@/features/legacy-tools/CompareView";
 import { EditorView } from "@/features/legacy-tools/EditorView";
 import { GuideView } from "@/features/legacy-tools/GuideView";
+import { emptyEditorDraft, getEditorMissing, getEditorOutput } from "@/features/legacy-tools/editor-model";
 import type { EditorDraft } from "@/features/legacy-tools/types";
 import { GlossaryDrawer } from "@/features/glossary/GlossaryDrawer";
 import { glossary } from "@/features/glossary/glossary-data";
@@ -42,8 +43,6 @@ import {
 } from "./atlas-data";
 
 const reviewedTotal = entries.filter((entry) => entry.researchState === "reviewed").length;
-
-const emptyEditorDraft: EditorDraft = { id: "", name: "", summary: "", entityKind: "microgenre", maturity: "local", confidence: "medium", verdict: "", history: "", listenFor: "", production: "", sources: "" };
 
 const statusSymbol: Record<EntryStatus, string> = {
   established: "●",
@@ -127,22 +126,8 @@ export default function AtlasApp() {
     [query, scope, showDisputed],
   );
 
-  const editorLines = (value: string) => value.split("\n").map((line) => line.trim()).filter(Boolean);
-  const editorMissing = [
-    !editorDraft.id && "ID",
-    !editorDraft.name && "название",
-    !editorDraft.summary && "короткое объяснение",
-    editorLines(editorDraft.listenFor).length < 3 && "три слышимых признака",
-    editorLines(editorDraft.production).length < 2 && "продюсерские заметки",
-    !editorDraft.history && "история термина",
-    editorLines(editorDraft.sources).length === 0 && "источники",
-  ].filter(Boolean) as string[];
-  const editorOutput = JSON.stringify({
-    id: editorDraft.id.trim(), name: editorDraft.name.trim(), summary: editorDraft.summary.trim(), entityKind: editorDraft.entityKind,
-    maturity: editorDraft.maturity, confidence: editorDraft.confidence, verdict: editorDraft.verdict.trim(), history: editorDraft.history.trim(),
-    listenFor: editorLines(editorDraft.listenFor), production: editorLines(editorDraft.production),
-    sources: editorLines(editorDraft.sources).map((url) => ({ label: "Уточнить подпись", url })),
-  }, null, 2);
+  const editorMissing = getEditorMissing(editorDraft);
+  const editorOutput = getEditorOutput(editorDraft);
 
   const finderResults = useMemo(
     () => getFinderResults(entries, {
