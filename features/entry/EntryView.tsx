@@ -14,8 +14,8 @@ import {
   Music2,
   SlidersHorizontal,
 } from "lucide-react";
-import type { ReactNode } from "react";
 import type { AtlasEntry, EntryStatus, FamilyMeta } from "@/app/atlas-data";
+import { ProfileBars } from "@/features/profile/ProfileBars";
 import type { DetailTab } from "@/features/shell/model";
 import { cn } from "@/shared/lib/cn";
 import { EntityBadge } from "@/shared/ui/EntityBadge";
@@ -34,7 +34,6 @@ type EntryViewProps = {
   detailTab: DetailTab;
   isBookmarked: boolean;
   inCompare: boolean;
-  renderProfileBars: () => ReactNode;
   glossaryTerms: string[];
   statusSymbol: Record<EntryStatus, string>;
   entityKindLabels: Record<AtlasEntry["entityKind"], string>;
@@ -59,7 +58,6 @@ export function EntryView({
   detailTab,
   isBookmarked,
   inCompare,
-  renderProfileBars,
   glossaryTerms,
   statusSymbol,
   entityKindLabels,
@@ -179,7 +177,7 @@ export function EntryView({
               <div><span>ТЕМП</span><p>{entry.tempo}</p></div>
               <div><span>ПЕРИОД</span><p>{entry.era}</p></div>
             </div>
-            <div className="producer-profile"><span className="section-kicker">Профиль звука</span>{renderProfileBars()}</div>
+            <div className="producer-profile"><span className="section-kicker">Профиль звука</span><ProfileBars entry={entry} /></div>
           </section>
           <section className="detail-section">
             <div className="section-heading section-heading--compact"><div><span className="section-kicker">Рабочие заметки</span><h2>Как подойти к биту</h2></div></div>

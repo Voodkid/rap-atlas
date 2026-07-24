@@ -19,11 +19,11 @@ import { GlossaryDrawer } from "@/features/glossary/GlossaryDrawer";
 import { glossary } from "@/features/glossary/glossary-data";
 import { FinderView } from "@/features/finder/FinderView";
 import { GenreTree } from "@/features/navigation/GenreTree";
+import { ProfileBars } from "@/features/profile/ProfileBars";
 import { GlobalSearch } from "@/features/search/GlobalSearch";
 import { AtlasShell } from "@/features/shell/AtlasShell";
 import type { DetailTab, KnowledgeScope, ViewMode } from "@/features/shell/model";
 import { useStoredList } from "@/shared/hooks/useStoredList";
-import { cn } from "@/shared/lib/cn";
 import { EntityBadge } from "@/shared/ui/EntityBadge";
 import {
   AtlasEntry,
@@ -55,14 +55,6 @@ const statusSymbol: Record<EntryStatus, string> = {
   misnomer: "×",
   umbrella: "◎",
 };
-
-const profileLabels: Array<{ key: keyof AtlasEntry["profile"]; label: string }> = [
-  { key: "energy", label: "Энергия" },
-  { key: "distortion", label: "Перегруз" },
-  { key: "ambience", label: "Ширина и реверб" },
-  { key: "bounce", label: "Насколько качает" },
-  { key: "bassWeight", label: "Тяжесть низа" },
-];
 
 const focusOptions = [
   { id: "bass", label: "Бас" },
@@ -101,25 +93,6 @@ const melodyOptions = [
   { id: "bright", label: "Яркий плак" },
   { id: "dark", label: "Тёмная, ноты звучат напряжённо" },
 ];
-
-function ProfileBars({ entry, compact = false }: { entry: AtlasEntry; compact?: boolean }) {
-  const family = getFamily(entry.family);
-  return (
-    <div className={cn("profile-bars", compact && "profile-bars--compact")}>
-      {profileLabels.map(({ key, label }) => (
-        <div className="profile-row" key={key}>
-          <div className="profile-label">
-            <span>{label}</span>
-            <b>{entry.profile[key]}/5</b>
-          </div>
-          <div className="profile-track" aria-label={`${label}: ${entry.profile[key]} из 5`}>
-            <span style={{ width: `${entry.profile[key] * 20}%`, backgroundColor: family.color }} />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 function ContextRail({ entry, recent, onSelect }: { entry: AtlasEntry | null; recent: string[]; onSelect: (entry: AtlasEntry) => void }) {
   if (!entry) {
@@ -543,7 +516,7 @@ export default function AtlasApp() {
           ) : view === "bookmarks" ? (
             <BookmarksView entries={bookmarkedEntries} getFamily={getFamily} onSelect={selectEntry} />
           ) : view === "compare" ? (
-            <CompareView entries={comparedEntries} getFamily={getFamily} renderProfileBars={(entry) => <ProfileBars entry={entry} compact />} onSelect={selectEntry} onRemove={(id) => toggleCompare(id)} />
+            <CompareView entries={comparedEntries} getFamily={getFamily} onSelect={selectEntry} onRemove={(id) => toggleCompare(id)} />
           ) : view === "guide" ? (
             <GuideView onEditor={() => showView("editor")} />
           ) : view === "editor" ? (
@@ -572,7 +545,6 @@ export default function AtlasApp() {
               detailTab={detailTab}
               isBookmarked={bookmarks.includes(selected.id)}
               inCompare={compareIds.includes(selected.id)}
-              renderProfileBars={() => <ProfileBars entry={selected} />}
               glossaryTerms={glossaryTerms}
               statusSymbol={statusSymbol}
               entityKindLabels={entityKindLabels}

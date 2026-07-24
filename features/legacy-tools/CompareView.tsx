@@ -1,6 +1,6 @@
 import { Columns3, GitCompareArrows, X } from "lucide-react";
-import type { ReactNode } from "react";
 import type { AtlasEntry, FamilyId, FamilyMeta } from "@/app/atlas-data";
+import { ProfileBars } from "@/features/profile/ProfileBars";
 import { EntityBadge } from "@/shared/ui/EntityBadge";
 import { FamilyMark } from "@/shared/ui/FamilyMark";
 import { MaturityBadge } from "@/shared/ui/MaturityBadge";
@@ -8,12 +8,11 @@ import { MaturityBadge } from "@/shared/ui/MaturityBadge";
 type CompareViewProps = {
   entries: AtlasEntry[];
   getFamily: (id: FamilyId) => FamilyMeta;
-  renderProfileBars: (entry: AtlasEntry) => ReactNode;
   onSelect: (entry: AtlasEntry) => void;
   onRemove: (id: string) => void;
 };
 
-export function CompareView({ entries, getFamily, renderProfileBars, onSelect, onRemove }: CompareViewProps) {
+export function CompareView({ entries, getFamily, onSelect, onRemove }: CompareViewProps) {
   return (
     <div className="compare-view">
       <div className="collection-heading"><Columns3 size={24} /><div><span className="section-kicker">По пунктам</span><h1>Сравнение</h1></div></div>
@@ -36,7 +35,7 @@ export function CompareView({ entries, getFamily, renderProfileBars, onSelect, o
                 </section>
                 <details className="compare-common">
                   <summary>Показать остальные параметры</summary>
-                  {renderProfileBars(entry)}
+                  <ProfileBars entry={entry} compact />
                   <div className="compare-fact"><span>Настроение</span><p>{entry.mood}</p></div>
                   <div className="compare-fact"><span>Темп</span><p>{entry.tempo}</p></div>
                   <div className="compare-fact"><span>Период</span><p>{entry.era}</p></div>
